@@ -5,3 +5,4 @@ export * from './placement.ts';
 export * from './exercises.ts';
 export * from './generate.ts';
 export * from './progression.ts';
+export * from './today.ts';
