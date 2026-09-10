@@ -49,7 +49,9 @@ Decisions already made. These narrow the design space on purpose:
 
 - **Platforms** — iOS and Android via Expo. No web.
 - **Goals** — strength for grappling, and gas tank / conditioning. That's it.
-- **Session input** — rounds plus light / medium / hard. No RPE scale.
+- **Session input** — rounds plus light / medium / hard. No RPE scale. Session
+  *type* (gi / no-gi / open mat) is captured when logging what happened, but does
+  not feed the fatigue model — see Planned vs logged.
 - **Progression** — double progression. No 1RM testing, no percentage-based prescription.
 - **Routine generation** — deterministic rules engine, no LLM. An LLM polish layer
   (naming, accessory variation, coaching notes) is deferred until the programming
@@ -103,20 +105,79 @@ Then press `i`, or open it manually if that fails — see below.
 > xcrun simctl openurl booted "exp://127.0.0.1:8081"
 > ```
 
+## Product shape
+
+The app is a daily companion, not a planner you visit occasionally.
+
+**First launch** runs the questionnaire once. After that, every adjustment —
+schedule, goals, working weights, units — lives in **Settings**. The
+questionnaire never appears again.
+
+**Every subsequent launch opens on Today**, which answers one question: what am
+I doing today?
+
+- **Lifting day** → "Today's lift" card with the session's programming. Tapping
+  it starts the workout: log each set, rest timer between them, and progression
+  applied when the session ends.
+- **Mat day** → "Track session". Log what actually happened: intensity, rounds,
+  drills or techniques worked, and whether it was gi, no-gi, or an open mat.
+- **Rest day** → say so plainly, and show what's next.
+
+**History** is a calendar of completed work — tap any day to see the lift or mat
+session logged against it.
+
+**Stats** summarize the training: workouts completed, rounds trained, sets and
+total volume moved, and relative strength trend over time.
+
+### Planned vs logged
+
+These are deliberately separate models:
+
+- A **planned** mat session is what the routine engine programs around. It stays
+  minimal — day, rounds, intensity — because that is all the fatigue model needs.
+- A **logged** mat session is what actually happened, and carries the richer
+  detail (gi / no-gi / open mat, drills, notes).
+
+Logging never silently rewrites the plan. It is a record, and later the input
+that lets programming adapt to real load rather than intentions.
+
 ## Roadmap
 
-Roughly in dependency order:
+Broken into the smallest shippable pieces, in dependency order. Each lands as
+its own commit with tests where there is logic to test.
 
-1. **Local persistence** — `expo-sqlite` schema and a repository layer. Everything
-   below is blocked on this.
-2. **Onboarding and schedule input** — replace the hard-coded profile and mat week.
-3. **Set logging and rest timers** — the in-gym experience. This is what finally puts
-   `progression.ts` to work; today nothing calls it.
-4. **Curated exercise library** — import an open dataset, prune it, add grappling-specific
-   metadata. Replaces the 30-exercise starter set.
-5. **Azure backend** — Python Functions, Postgres, Terraform, Entra External ID.
-6. **Sync** — reconcile the local database with the server.
-7. **LLM polish layer** — once the deterministic programming is proven.
+**Done**
+
+1. ~~Local persistence — `expo-sqlite` schema and repository layer~~
+2. ~~Onboarding and schedule input — replaced the hard-coded profile~~
+
+**Next: Today as home**
+
+3. Engine selector for "what is today" — lift, mat, or rest. Pure logic, unit tested.
+4. Today screen as the app's home.
+5. Move schedule and profile editing into Settings; onboarding becomes first-launch only.
+
+**Then: logging**
+
+6. Schema for completed work — workout logs, logged sets, logged mat sessions.
+7. Start-workout flow: per-exercise set entry.
+8. Rest timer between sets.
+9. Apply `progression.ts` when a session completes — the first real use of it.
+10. Mat session logging: intensity, rounds, drills, gi / no-gi / open mat.
+
+**Then: looking back**
+
+11. Calendar history of completed work.
+12. Day detail — what was logged on a given date.
+13. Stats: workouts completed, rounds trained, sets, total volume.
+14. Relative strength trend (load relative to bodyweight over time).
+
+**Later**
+
+15. Curated exercise library — import an open dataset, prune it, add grappling metadata.
+16. Azure backend — Python Functions, Postgres, Terraform, Entra External ID.
+17. Sync — reconcile the local database with the server.
+18. LLM polish layer — once the deterministic programming is proven.
 
 ## Open questions
 
