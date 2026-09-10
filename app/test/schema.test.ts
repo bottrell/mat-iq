@@ -1,7 +1,7 @@
 import { DatabaseSync } from 'node:sqlite';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { MIGRATIONS } from '../src/db/schema.ts';
-import { localDateKey } from '../src/db/logs.ts';
+import { localDateKey, WORKOUT_SUMMARY_SQL } from '../src/db/logs.ts';
 
 /**
  * expo-sqlite only runs on a device, so these exercise the schema itself
@@ -154,5 +154,68 @@ describe('localDateKey', () => {
     // west of UTC, filing the workout under the wrong day.
     const lateNight = new Date(2026, 8, 9, 23, 0);
     expect(localDateKey(lateNight)).toBe('2026-09-09');
+  });
+});
+
+describe('workout summaries', () => {
+  let db: DatabaseSync;
+
+  const addSet = (
+    exerciseId: string,
+    reps: number,
+    weightLb: number | null,
+    prescribedIn: string,
+  ) =>
+    db
+      .prepare(
+        `INSERT INTO logged_sets
+           (workout_log_id, exercise_id, exercise_name, set_index, reps, weight_lb, prescribed_in, logged_at)
+         VALUES (1, ?, ?, 0, ?, ?, ?, 'now')`,
+      )
+      .run(exerciseId, exerciseId, reps, weightLb, prescribedIn);
+
+  const summary = () =>
+    db.prepare(WORKOUT_SUMMARY_SQL.replace('{where}', '')).get() as {
+      set_count: number;
+      total_reps: number;
+      volume_lb: number;
+    };
+
+  beforeEach(() => {
+    db = migrated();
+    db.prepare(
+      "INSERT INTO workout_logs (date, day, label, started_at) VALUES ('2026-09-09', 2, 'Full Body A', 'now')",
+    ).run();
+  });
+
+  it('reports zeroes for a workout with no sets rather than dropping it', () => {
+    // A LEFT JOIN is load-bearing here: an INNER JOIN would hide the workout.
+    expect(summary()).toMatchObject({ set_count: 0, total_reps: 0, volume_lb: 0 });
+  });
+
+  it('sums volume as reps times weight', () => {
+    addSet('back-squat', 5, 225, 'reps');
+    addSet('back-squat', 5, 225, 'reps');
+    expect(summary().volume_lb).toBe(2250);
+  });
+
+  it('excludes carries and holds from volume', () => {
+    // 40 yards of a carry is not 40 "reps" of load moved. Counting seconds and
+    // yards as volume would inflate the number into meaninglessness.
+    addSet('back-squat', 5, 200, 'reps');
+    addSet('farmers-carry', 40, 70, 'yards');
+    addSet('plate-pinch', 30, 45, 'seconds');
+    expect(summary().volume_lb).toBe(1000);
+  });
+
+  it('counts every set and rep regardless of unit', () => {
+    addSet('back-squat', 5, 200, 'reps');
+    addSet('farmers-carry', 40, 70, 'yards');
+    expect(summary()).toMatchObject({ set_count: 2, total_reps: 45 });
+  });
+
+  it('treats bodyweight sets as zero volume, not null', () => {
+    addSet('pull-up', 8, null, 'reps');
+    expect(summary().volume_lb).toBe(0);
   });
 });

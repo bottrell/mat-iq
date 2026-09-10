@@ -22,6 +22,17 @@ export interface WorkoutLog {
   notes?: string;
 }
 
+/** A workout with its totals, for cards, history, and stats. */
+export interface WorkoutSummary extends WorkoutLog {
+  setCount: number;
+  /**
+   * Total load moved, in pounds. Only rep-based sets with a weight contribute —
+   * summing seconds of a plank or yards of a carry into "volume" is meaningless.
+   */
+  volumeLb: number;
+  totalReps: number;
+}
+
 export interface LoggedSet {
   id: number;
   workoutLogId: number;
@@ -116,6 +127,55 @@ export async function listWorkouts(
     params,
   );
   return rows.map(toWorkoutLog);
+}
+
+/**
+ * Aggregate half of the summary query, exported so tests exercise the real SQL
+ * rather than a copy of it. `{where}` is substituted, never interpolated with
+ * user input — the values stay bound parameters.
+ */
+export const WORKOUT_SUMMARY_SQL = `SELECT w.*,
+            COUNT(s.id) AS set_count,
+            COALESCE(SUM(s.reps), 0) AS total_reps,
+            COALESCE(SUM(
+              CASE WHEN s.prescribed_in = 'reps' AND s.weight_lb IS NOT NULL
+                   THEN s.reps * s.weight_lb ELSE 0 END
+            ), 0) AS volume_lb
+     FROM workout_logs w
+     LEFT JOIN logged_sets s ON s.workout_log_id = w.id
+     {where}
+     GROUP BY w.id
+     ORDER BY w.date DESC, w.id DESC`;
+
+export async function listWorkoutSummaries(
+  db: SQLiteDatabase,
+  options: { from?: string; to?: string; completedOnly?: boolean } = {},
+): Promise<WorkoutSummary[]> {
+  const where: string[] = [];
+  const params: (string | number)[] = [];
+
+  if (options.completedOnly) where.push('w.completed_at IS NOT NULL');
+  if (options.from) {
+    where.push('w.date >= ?');
+    params.push(options.from);
+  }
+  if (options.to) {
+    where.push('w.date <= ?');
+    params.push(options.to);
+  }
+
+  const clause = where.length ? `WHERE ${where.join(' AND ')}` : '';
+  const rows = await db.getAllAsync<any>(
+    WORKOUT_SUMMARY_SQL.replace('{where}', clause),
+    params,
+  );
+
+  return rows.map((r) => ({
+    ...toWorkoutLog(r),
+    setCount: r.set_count,
+    totalReps: r.total_reps,
+    volumeLb: r.volume_lb,
+  }));
 }
 
 // -------------------------------------------------------------------- sets

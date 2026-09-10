@@ -11,6 +11,7 @@ export const colors = {
   warn: '#c8a24a',
   danger: '#d2544c',
   border: '#2c3140',
+  done: '#5fbf8f',
 } as const;
 
 export const intensityColor = {

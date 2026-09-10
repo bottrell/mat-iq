@@ -105,11 +105,11 @@ function SetRow({
 
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel={`Log set ${setIndex + 1}`}
+        accessibilityLabel={`Mark set ${setIndex + 1} done`}
         onPress={submit}
         style={({ pressed }) => [styles.logButton, { opacity: pressed ? 0.7 : 1 }]}
       >
-        <Text style={styles.logButtonText}>Log</Text>
+        <Text style={styles.logButtonText}>Done</Text>
       </Pressable>
     </View>
   );

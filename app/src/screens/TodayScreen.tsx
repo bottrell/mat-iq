@@ -7,8 +7,9 @@ import {
   type DayPlan,
 } from '@mat-iq/engine';
 import { useTraining } from '../state/TrainingContext.tsx';
+import { useWorkout } from '../state/WorkoutContext.tsx';
 import { colors, intensityColor } from '../ui/theme.ts';
-import { formatWeight } from '../ui/units.ts';
+import { formatWeight, fromLb } from '../ui/units.ts';
 
 const LONG_DATE: Intl.DateTimeFormatOptions = { weekday: 'long', month: 'long', day: 'numeric' };
 
@@ -53,18 +54,32 @@ export function TodayScreen({
   onOpenSchedule: () => void;
 }) {
   const { routine, sessions, profile } = useTraining();
+  const { completedToday } = useWorkout();
   if (!profile) return null;
 
   const today = new Date();
   const plan = planForDate(routine, sessions, today);
   const next = nextTrainingDay(routine, sessions, plan.day);
   const units = profile.units;
+  const liftDone = completedToday[0];
 
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
       <Text style={styles.date}>{today.toLocaleDateString(undefined, LONG_DATE)}</Text>
 
-      {(plan.kind === 'lift' || plan.kind === 'both') && plan.lift ? (
+      {(plan.kind === 'lift' || plan.kind === 'both') && plan.lift && liftDone ? (
+        <ActionCard eyebrow="LIFT COMPLETE" title={liftDone.label} accent={colors.done}>
+          <Text style={styles.doneLine}>
+            ✓ {liftDone.setCount} {liftDone.setCount === 1 ? 'set' : 'sets'}
+            {liftDone.volumeLb > 0
+              ? ` · ${Math.round(fromLb(liftDone.volumeLb, units)).toLocaleString()} ${units} moved`
+              : ''}
+          </Text>
+          <Text style={styles.doneMeta}>Nice work. That one's in the books.</Text>
+        </ActionCard>
+      ) : null}
+
+      {(plan.kind === 'lift' || plan.kind === 'both') && plan.lift && !liftDone ? (
         <ActionCard
           eyebrow="TODAY'S LIFT"
           title={plan.lift.label}
@@ -155,6 +170,8 @@ const styles = StyleSheet.create({
   preview: { marginTop: 14, gap: 6 },
   previewLine: { color: '#e4e7ee', fontSize: 14 },
   previewDim: { color: colors.textDim, fontSize: 13 },
+  doneLine: { color: colors.done, fontSize: 16, fontWeight: '600', marginTop: 6 },
+  doneMeta: { color: colors.textMuted, fontSize: 14, marginTop: 4 },
   doubleUpNote: { color: colors.warn, fontSize: 13, lineHeight: 19, marginBottom: 8 },
   links: { marginTop: 10, gap: 4 },
   link: { paddingVertical: 10 },
