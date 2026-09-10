@@ -1,4 +1,4 @@
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import type { DayPlan } from '@mat-iq/engine';
 import { useTraining } from '../state/TrainingContext.tsx';
 import { Card } from '../ui/components.tsx';
@@ -7,7 +7,13 @@ import { formatWeight } from '../ui/units.ts';
 
 const UNIT_SUFFIX = { reps: '', seconds: 's', yards: 'yd' } as const;
 
-export function LiftDetailScreen({ plan }: { plan: DayPlan }) {
+export function LiftDetailScreen({
+  plan,
+  onStart,
+}: {
+  plan: DayPlan;
+  onStart: () => void;
+}) {
   const { profile } = useTraining();
   const lift = plan.lift;
   if (!lift || !profile) return null;
@@ -32,11 +38,13 @@ export function LiftDetailScreen({ plan }: { plan: DayPlan }) {
         </Card>
       ))}
 
-      <View style={styles.pending}>
-        <Text style={styles.pendingText}>
-          Set logging and the rest timer land next. For now this is the plan, not a tracker.
-        </Text>
-      </View>
+      <Pressable
+        accessibilityRole="button"
+        onPress={onStart}
+        style={({ pressed }) => [styles.start, { opacity: pressed ? 0.8 : 1 }]}
+      >
+        <Text style={styles.startText}>Start workout</Text>
+      </Pressable>
     </ScrollView>
   );
 }
@@ -48,12 +56,12 @@ const styles = StyleSheet.create({
   name: { color: colors.text, fontSize: 17, fontWeight: '600' },
   prescription: { color: colors.textMuted, fontSize: 15, marginTop: 4 },
   note: { color: colors.warn, fontSize: 13, marginTop: 6, fontStyle: 'italic' },
-  pending: {
-    borderRadius: 12,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.border,
-    padding: 14,
+  start: {
+    backgroundColor: colors.accent,
+    borderRadius: 11,
+    paddingVertical: 15,
+    alignItems: 'center',
     marginTop: 6,
   },
-  pendingText: { color: colors.textDim, fontSize: 13, lineHeight: 19 },
+  startText: { color: '#fff', fontSize: 16, fontWeight: '600' },
 });
