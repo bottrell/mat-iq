@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import type { DayPlan, PrescribedExercise } from '@mat-iq/engine';
 import { useWorkout } from '../state/WorkoutContext.tsx';
+import { RestTimer } from '../ui/RestTimer.tsx';
 import { useTraining } from '../state/TrainingContext.tsx';
 import { colors } from '../ui/theme.ts';
 import { fromLb, toLb } from '../ui/units.ts';
@@ -117,6 +118,7 @@ function SetRow({
 export function WorkoutScreen({ plan, onFinished }: { plan: DayPlan; onFinished: () => void }) {
   const { profile } = useTraining();
   const { sets, logSet, undoSet, complete, discard } = useWorkout();
+  const [restStartedAt, setRestStartedAt] = useState<number | null>(null);
   const lift = plan.lift;
 
   if (!lift || !profile) return null;
@@ -194,7 +196,8 @@ export function WorkoutScreen({ plan, onFinished }: { plan: DayPlan; onFinished:
                   setIndex={setIndex}
                   logged={forExercise[setIndex]}
                   units={units}
-                  onLog={(reps, weightLb) =>
+                  onLog={(reps, weightLb) => {
+                    setRestStartedAt(Date.now());
                     void logSet({
                       exerciseId: prescribed.exercise.id,
                       exerciseName: prescribed.exercise.name,
@@ -202,9 +205,12 @@ export function WorkoutScreen({ plan, onFinished }: { plan: DayPlan; onFinished:
                       reps,
                       weightLb,
                       prescribedIn: prescribed.exercise.prescribedIn,
-                    })
-                  }
-                  onUndo={(id) => void undoSet(id)}
+                    });
+                  }}
+                  onUndo={(id) => {
+                    setRestStartedAt(null);
+                    void undoSet(id);
+                  }}
                 />
               ))}
             </View>
@@ -223,6 +229,8 @@ export function WorkoutScreen({ plan, onFinished }: { plan: DayPlan; onFinished:
           <Text style={styles.discardText}>Discard</Text>
         </Pressable>
       </ScrollView>
+
+      <RestTimer startedAt={restStartedAt} onDismiss={() => setRestStartedAt(null)} />
     </KeyboardAvoidingView>
   );
 }
