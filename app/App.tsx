@@ -16,12 +16,14 @@ import { SettingsScreen } from './src/screens/SettingsScreen.tsx';
 import { ProfileScreen } from './src/screens/ProfileScreen.tsx';
 import { LiftDetailScreen } from './src/screens/LiftDetailScreen.tsx';
 import { WorkoutScreen } from './src/screens/WorkoutScreen.tsx';
+import { MatLogScreen } from './src/screens/MatLogScreen.tsx';
 import { colors } from './src/ui/theme.ts';
 
 export type RootStackParamList = {
   Today: undefined;
   Lift: { plan: DayPlan };
   Workout: { plan: DayPlan };
+  MatLog: { plan: DayPlan };
   Week: undefined;
   Settings: undefined;
   Schedule: undefined;
@@ -108,6 +110,7 @@ function Root() {
           {({ navigation }) => (
             <TodayScreen
               onOpenLift={(plan) => navigation.navigate('Lift', { plan })}
+              onTrackSession={(plan) => navigation.navigate('MatLog', { plan })}
               onOpenWeek={() => navigation.navigate('Week')}
               onOpenSchedule={() => navigation.navigate('Schedule')}
             />
@@ -129,6 +132,12 @@ function Root() {
         >
           {({ route, navigation }) => (
             <StartedWorkout plan={route.params.plan} onFinished={() => navigation.popTo('Today')} />
+          )}
+        </Stack.Screen>
+
+        <Stack.Screen name="MatLog" options={{ title: 'Track Session' }}>
+          {({ route, navigation }) => (
+            <MatLogScreen plan={route.params.plan} onSaved={() => navigation.goBack()} />
           )}
         </Stack.Screen>
 

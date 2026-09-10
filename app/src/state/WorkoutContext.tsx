@@ -3,19 +3,23 @@ import type { ReactNode } from 'react';
 import { useSQLiteContext } from 'expo-sqlite';
 import type { LiftSession, Weekday } from '@mat-iq/engine';
 import * as logs from '../db/logs.ts';
-import type { LoggedSet, WorkoutLog, WorkoutSummary } from '../db/logs.ts';
+import type { LoggedSet, MatLog, WorkoutLog, WorkoutSummary } from '../db/logs.ts';
 
 interface WorkoutState {
   active: WorkoutLog | null;
   sets: LoggedSet[];
   /** Completed lifts logged today. A finished workout cannot be restarted. */
   completedToday: WorkoutSummary[];
+  /** Mat sessions logged today. */
+  matLogsToday: MatLog[];
   /** Starts a workout, or returns the one already in progress. */
   start: (session: LiftSession, day: Weekday) => Promise<number>;
   logSet: (input: Omit<LoggedSet, 'id' | 'loggedAt' | 'workoutLogId'>) => Promise<void>;
   undoSet: (id: number) => Promise<void>;
   complete: (notes?: string) => Promise<void>;
   discard: () => Promise<void>;
+  logMat: (input: Omit<MatLog, 'id' | 'loggedAt' | 'date'>) => Promise<void>;
+  deleteMatLog: (id: number) => Promise<void>;
 }
 
 const WorkoutContext = createContext<WorkoutState | null>(null);
@@ -25,15 +29,18 @@ export function WorkoutProvider({ children }: { children: ReactNode }) {
   const [active, setActive] = useState<WorkoutLog | null>(null);
   const [sets, setSets] = useState<LoggedSet[]>([]);
   const [completedToday, setCompletedToday] = useState<WorkoutSummary[]>([]);
+  const [matLogsToday, setMatLogsToday] = useState<MatLog[]>([]);
 
   const refresh = useCallback(async () => {
     const today = logs.localDateKey();
-    const [workout, completed] = await Promise.all([
+    const [workout, completed, mats] = await Promise.all([
       logs.activeWorkout(db),
       logs.listWorkoutSummaries(db, { from: today, to: today, completedOnly: true }),
+      logs.listMatLogs(db, { from: today, to: today }),
     ]);
     setActive(workout);
     setCompletedToday(completed);
+    setMatLogsToday(mats);
     setSets(workout ? await logs.listSets(db, workout.id) : []);
   }, [db]);
 
@@ -48,6 +55,7 @@ export function WorkoutProvider({ children }: { children: ReactNode }) {
       active,
       sets,
       completedToday,
+      matLogsToday,
       start: async (session, day) => {
         const existing = await logs.activeWorkout(db);
         if (existing) {
@@ -82,8 +90,16 @@ export function WorkoutProvider({ children }: { children: ReactNode }) {
         await logs.discardWorkout(db, active.id);
         await refresh();
       },
+      logMat: async (input) => {
+        await logs.logMatSession(db, { ...input, date: logs.localDateKey() });
+        await refresh();
+      },
+      deleteMatLog: async (id) => {
+        await logs.deleteMatLog(db, id);
+        await refresh();
+      },
     }),
-    [db, active, sets, completedToday, refresh],
+    [db, active, sets, completedToday, matLogsToday, refresh],
   );
 
   return <WorkoutContext.Provider value={value}>{children}</WorkoutContext.Provider>;

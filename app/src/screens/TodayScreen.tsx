@@ -8,6 +8,7 @@ import {
 } from '@mat-iq/engine';
 import { useTraining } from '../state/TrainingContext.tsx';
 import { useWorkout } from '../state/WorkoutContext.tsx';
+import { SESSION_TYPE_LABEL } from '../db/logs.ts';
 import { colors, intensityColor } from '../ui/theme.ts';
 import { formatWeight, fromLb } from '../ui/units.ts';
 
@@ -46,15 +47,17 @@ function ActionCard({
 
 export function TodayScreen({
   onOpenLift,
+  onTrackSession,
   onOpenWeek,
   onOpenSchedule,
 }: {
   onOpenLift: (plan: DayPlan) => void;
+  onTrackSession: (plan: DayPlan) => void;
   onOpenWeek: () => void;
   onOpenSchedule: () => void;
 }) {
   const { routine, sessions, profile } = useTraining();
-  const { completedToday } = useWorkout();
+  const { completedToday, matLogsToday } = useWorkout();
   if (!profile) return null;
 
   const today = new Date();
@@ -62,6 +65,7 @@ export function TodayScreen({
   const next = nextTrainingDay(routine, sessions, plan.day);
   const units = profile.units;
   const liftDone = completedToday[0];
+  const loggedRounds = matLogsToday.reduce((total, log) => total + log.rounds, 0);
 
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
@@ -112,17 +116,37 @@ export function TodayScreen({
       ) : null}
 
       {(plan.kind === 'mat' || plan.kind === 'both') && plan.matSessions.length > 0 ? (
-        <ActionCard
-          eyebrow="TODAY ON THE MATS"
-          title={`${plannedRounds(plan)} rounds planned`}
-          accent={intensityColor[plan.matSessions[0]!.intensity]}
-        >
-          {plan.matSessions.map((session, index) => (
-            <Text key={index} style={styles.meta}>
-              {session.rounds} rounds · {INTENSITY_LABEL[session.intensity]}
-            </Text>
-          ))}
-        </ActionCard>
+        matLogsToday.length > 0 ? (
+          <ActionCard eyebrow="MAT SESSION LOGGED" title={`${loggedRounds} rounds trained`} accent={colors.done}>
+            {matLogsToday.map((log) => (
+              <Text key={log.id} style={styles.doneLine}>
+                ✓ {SESSION_TYPE_LABEL[log.sessionType]} · {INTENSITY_LABEL[log.intensity]}
+              </Text>
+            ))}
+            {matLogsToday.find((l) => l.notes) ? (
+              <Text style={styles.notesLine}>{matLogsToday.find((l) => l.notes)!.notes}</Text>
+            ) : null}
+          </ActionCard>
+        ) : (
+          <ActionCard
+            eyebrow="TODAY ON THE MATS"
+            title={`${plannedRounds(plan)} rounds planned`}
+            accent={intensityColor[plan.matSessions[0]!.intensity]}
+          >
+            {plan.matSessions.map((session, index) => (
+              <Text key={index} style={styles.meta}>
+                {session.rounds} rounds · {INTENSITY_LABEL[session.intensity]}
+              </Text>
+            ))}
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => onTrackSession(plan)}
+              style={({ pressed }) => [styles.trackButton, { opacity: pressed ? 0.8 : 1 }]}
+            >
+              <Text style={styles.trackButtonText}>Track session</Text>
+            </Pressable>
+          </ActionCard>
+        )
       ) : null}
 
       {plan.kind === 'rest' ? (
@@ -172,6 +196,15 @@ const styles = StyleSheet.create({
   previewDim: { color: colors.textDim, fontSize: 13 },
   doneLine: { color: colors.done, fontSize: 16, fontWeight: '600', marginTop: 6 },
   doneMeta: { color: colors.textMuted, fontSize: 14, marginTop: 4 },
+  notesLine: { color: colors.textMuted, fontSize: 13, marginTop: 8, fontStyle: 'italic' },
+  trackButton: {
+    backgroundColor: colors.accentMuted,
+    borderRadius: 10,
+    paddingVertical: 12,
+    alignItems: 'center',
+    marginTop: 14,
+  },
+  trackButtonText: { color: colors.accent, fontSize: 15, fontWeight: '600' },
   doubleUpNote: { color: colors.warn, fontSize: 13, lineHeight: 19, marginBottom: 8 },
   links: { marginTop: 10, gap: 4 },
   link: { paddingVertical: 10 },
