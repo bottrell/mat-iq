@@ -9,17 +9,23 @@ you need your hands tomorrow. Then it tracks your progression session to session
 
 ## Status
 
-Early. The domain engine works and is tested; the app renders a generated week on the
-iOS Simulator. There is no persistence, no onboarding, and no backend yet.
+The app is usable on a device: onboard once, keep your mat schedule, and log
+both lifts and mat sessions against a program built around them. Nothing syncs
+anywhere — it is all on-device — and there is no history or stats view yet.
 
 | Piece | State |
 |---|---|
-| Routine engine (`packages/engine`) | Working, 43 tests |
-| Expo app (`app/`) | Renders a generated week from hard-coded inputs |
-| Local persistence | Not started |
-| Onboarding / schedule input | Not started |
-| Set logging + rest timers | Not started |
-| Azure API + auth | Not started |
+| Routine engine (`packages/engine`) | Done — 58 tests |
+| Local persistence (`expo-sqlite`) | Done — schema, migrations, repository, 27 tests |
+| Onboarding and Settings | Done — questionnaire once, adjustments in Settings |
+| Today screen | Done — the day's lift, mat session, or rest |
+| Set logging and rest timer | Done — per-set entry, undo, wall-clock timer |
+| Mat session logging | Done — rounds, intensity, gi / no-gi / open mat, notes |
+| Progression applied on completion | Not started — `progression.ts` is tested but nothing calls it |
+| Calendar history | Not started |
+| Stats | Not started |
+| Apple Health | Not started |
+| Azure API and auth | Not started |
 | Terraform (`iac/`) | Dev remote-state backend only |
 
 ## How it works
@@ -82,7 +88,7 @@ Requires Node and, for iOS, Xcode with a simulator runtime.
 
 ```bash
 npm install
-npm test                      # 43 engine tests
+npm test                      # 85 tests across both packages
 node packages/engine/demo.ts  # print a generated week in the terminal
 ```
 
@@ -150,20 +156,18 @@ its own commit with tests where there is logic to test.
 
 1. ~~Local persistence — `expo-sqlite` schema and repository layer~~
 2. ~~Onboarding and schedule input — replaced the hard-coded profile~~
+3. ~~Engine selector for "what is today" — lift, mat, or rest~~
+4. ~~Today screen as the app's home~~
+5. ~~Schedule and profile editing moved into Settings; onboarding is first-launch only~~
+6. ~~Schema for completed work — workout logs, logged sets, logged mat sessions~~
+7. ~~Start-workout flow: per-exercise set entry~~
+8. ~~Rest timer between sets~~
+10. ~~Mat session logging: rounds, intensity, drills, gi / no-gi / open mat~~
 
-**Next: Today as home**
+**Next**
 
-3. Engine selector for "what is today" — lift, mat, or rest. Pure logic, unit tested.
-4. Today screen as the app's home.
-5. Move schedule and profile editing into Settings; onboarding becomes first-launch only.
-
-**Then: logging**
-
-6. Schema for completed work — workout logs, logged sets, logged mat sessions.
-7. Start-workout flow: per-exercise set entry.
-8. Rest timer between sets.
 9. Apply `progression.ts` when a session completes — the first real use of it.
-10. Mat session logging: intensity, rounds, drills, gi / no-gi / open mat.
+   Finishing a workout currently records it but does not advance your loads.
 
 **Then: looking back**
 
