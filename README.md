@@ -172,12 +172,22 @@ its own commit with tests where there is logic to test.
 13. Stats: workouts completed, rounds trained, sets, total volume.
 14. Relative strength trend (load relative to bodyweight over time).
 
+**Later, but high priority**
+
+15. **Apple Health integration.** Treated as essential, not a nice-to-have. Completed
+    lifts and mat sessions should write to HealthKit as workouts so they land in the
+    rings and in whatever tracker the athlete already lives in. Mat sessions have no
+    heart-rate data of their own, so energy burned is *estimated* from rounds,
+    intensity, and bodyweight — a grappling round is closer to interval work than to
+    steady cardio, and logging nothing at all understates the day badly. Lifts
+    estimate from sets, load, and time under tension.
+
 **Later**
 
-15. Curated exercise library — import an open dataset, prune it, add grappling metadata.
-16. Azure backend — Python Functions, Postgres, Terraform, Entra External ID.
-17. Sync — reconcile the local database with the server.
-18. LLM polish layer — once the deterministic programming is proven.
+16. Curated exercise library — import an open dataset, prune it, add grappling metadata.
+17. Azure backend — Python Functions, Postgres, Terraform, Entra External ID.
+18. Sync — reconcile the local database with the server.
+19. LLM polish layer — once the deterministic programming is proven.
 
 ## Open questions
 
