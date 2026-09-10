@@ -1,0 +1,10 @@
+{
+  "extends": "expo/tsconfig.base",
+  "compilerOptions": {
+    "strict": true,
+    "noEmit": true,
+    // @mat-iq/engine is consumed as TypeScript source, and its internal imports
+    // carry explicit .ts extensions so plain `node` can run the package too.
+    "allowImportingTsExtensions": true
+  }
+}
